@@ -19,7 +19,7 @@ def rnn(wt_h, wt_x, bias, init_state, input_data):
     outputs:
         outputs: shape [batch_size, time_steps, hidden_size], outputs along the sequence. The output at each 
                  time step is exactly the hidden state
-        final_state: the final hidden state
+        final_state: [batch_size, hidden_size] the final hidden state
     """
     N, T, input_size = input_data.shape
     input_size_, hidden_size = wt_x.shape
@@ -33,8 +33,13 @@ def rnn(wt_h, wt_x, bias, init_state, input_data):
         """Compute softmax values for each sets of scores in x."""
         return np.exp(x) / np.sum(np.exp(x), axis=0)
 
+    def sigmoid(x):
+        return 1/(1+np.exp(-x))
+
     outputs = np.zeros((N, T, hidden_size))
     hidden  = init_state
+    final_state = np.zeros((N, hidden_size))
+
     # Input layer
     for i in range(N):
         hidden = np.copy(init_state[i, :])
@@ -55,12 +60,13 @@ def rnn(wt_h, wt_x, bias, init_state, input_data):
             hidden = temp1 + temp2 + bias
             assert(hidden.shape == (hidden_size,))
 
+            # hidden = np.tanh(hidden)
+            # outputs[i, t, :] = np.copy(np.dot(np.transpose(wt_h), hidden))
+            outputs[i, t, :] = np.copy(np.tanh(hidden))
             hidden = np.tanh(hidden)
-            # outputs[i, 0, :] = np.copy(np.dot(np.transpose(wt_h), hidden))
-            outputs[i, 0, :] = np.copy(hidden)
-    
-    final_state = hidden
-    
+
+        final_state[i, :] = hidden
+
     ##################################################################################################
     # Please implement the basic RNN here. You don't need to considier computational efficiency.     #
     ##################################################################################################
@@ -102,14 +108,19 @@ def gru(wtu_h, wtu_x, biasu, wtr_h, wtr_x, biasr, wtc_h, wtc_x, biasc, init_stat
     assert(hidden_size ==  hidden_size_)
     assert(hidden_size_ == hidden_size__)
 
+    def sigmoid(x):
+        return 1/(1+np.exp(-x))
+
     outputs = np.zeros((N, T, hidden_size))
 
     ##################################################################################################
     # Please implement an RNN with GRU here. You don't need to considier computational efficiency.   #
     ##################################################################################################
+    final_state = np.zeros((N, hidden_size))
+
     for i in range(N):
         X = input_data[i, :, :]
-        hidden  = init_state[i, :]
+        hidden  = np.copy(init_state[i, :])
         assert(X.shape == (T,input_size))
         assert(hidden.shape == (hidden_size,))
 
@@ -118,31 +129,33 @@ def gru(wtu_h, wtu_x, biasu, wtr_h, wtr_x, biasr, wtc_h, wtc_x, biasc, init_stat
             # Compute u gate (update gate) on input
             # u = np.dot(wtu_x, X[t, :]) + np.dot(wtu_h, hidden) + biasu
             # u = np.dot(np.transpose(X[t, :]), wtu_x) + np.dot(np.transpose(hidden),wtu_h) + biasu
-            u = np.dot(np.transpose(wtu_x), xt) + np.dot(np.transpose(wtu_h),hidden) + biasu
-            u = np.tanh(u)
+            u = np.dot(np.transpose(wtu_x), xt) + np.dot(np.transpose(wtu_h), hidden) + biasu
+            u = sigmoid(u)
             assert(u.shape == (hidden_size,))
 
             # Compute r gate (relevance gate)
             # r = np.dot(wtr_x, X[t, :]) + np.dot(wtr_h, hidden) + biasr
             # r = np.dot(np.transpose(X[t, :]), wtr_x) + np.dot(np.transpose(hidden), wtr_h) + biasr
             r = np.dot(np.transpose(wtr_x), xt) + np.dot(np.transpose(wtr_h), hidden) + biasr
-            r = np.tanh(r)
+            r = sigmoid(r)
             assert(r.shape == (hidden_size,))
 
             # Compute c
             # c = np.dot(wtc_x, X[t, :]) + np.dot(wtc_h, r * hidden) + biasc
             # c = np.dot(np.transpose(X[t, :]), wtc_x) + np.dot(np.transpose(r*hidden), wtc_h) + biasc
-            c = np.dot(np.transpose(wtc_x), xt) + np.dot(np.transpose(wtc_h), r*hidden) + biasc
+            c = np.dot(np.transpose(wtc_x), xt) + np.dot(np.transpose(wtc_h), np.multiply(r,hidden)) + biasc
             c = np.tanh(c)
+
             assert(c.shape == (hidden_size,))
 
-            # hidden = u * c + (1-u) * hidden
-            hidden =  u * hidden + (1-u) * c
+            hidden =  u * hidden + (np.ones_like(u) - u) * c
+            # hidden = np.tanh(hidden)
 
             assert(hidden.shape == (hidden_size,))
-            outputs[i, t, :] = np.copy(hidden)
 
-    final_state = hidden
+            outputs[i, t, :] = hidden
+
+        final_state[i, :] = hidden
     
     return outputs, final_state
 
