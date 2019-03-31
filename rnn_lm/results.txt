@@ -1,0 +1,198 @@
+hidden = 300
+dropout = 0.8
+lr = 0.01
+
+
+Training perplexity: 401.3701171875
+Validation perplexity: 283.6634521484375
+Total time: 287.65068340301514
+Epoch 1
+Training perplexity: 267.8653869628906
+Validation perplexity: 255.42776489257812
+Total time: 272.90136098861694
+Epoch 2
+Training perplexity: 230.75997924804688
+Validation perplexity: 246.3670654296875
+Total time: 272.8807644844055
+Epoch 3
+Training perplexity: 209.25808715820312
+Validation perplexity: 245.4299774169922
+Total time: 272.72894763946533
+Epoch 4
+Training perplexity: 194.3601531982422
+Validation perplexity: 251.38417053222656
+Total time: 272.3929536342621
+Epoch 5
+Training perplexity: 184.29881286621094
+Validation perplexity: 253.7510223388672
+Total time: 272.34867238998413
+Epoch 6
+Training perplexity: 176.42837524414062
+Validation perplexity: 261.1554870605469
+WARNING:tensorflow:From /home/duc/miniconda2/envs/research/lib/python3.6/site-packages/tensorflow/python/training/saver.py:1266: checkpoint_exists (from tensorflow.python.training.checkpoint_management) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use standard file APIs to check for files with this prefix.
+=-==-==-==-==-=225.83045959472656
+Test perplexity: 225.78103637695312
+=-==-==-==-==-=
+
+
+hidden = 400
+drop = 0.8
+
+Epoch 0
+Training perplexity: 398.4039001464844
+Validation perplexity: 283.9912414550781
+Total time: 325.0413806438446
+Epoch 1
+Training perplexity: 265.3345031738281
+Validation perplexity: 253.92848205566406
+Total time: 325.18077540397644
+Epoch 2
+Training perplexity: 226.94309997558594
+Validation perplexity: 245.53684997558594
+Total time: 324.6419770717621
+Epoch 3
+Training perplexity: 204.5321044921875
+Validation perplexity: 247.5630645751953
+Total time: 324.60077595710754
+Epoch 4
+Training perplexity: 189.21026611328125
+Validation perplexity: 246.3560333251953
+Total time: 324.4783878326416
+Epoch 5
+Training perplexity: 177.4999542236328
+Validation perplexity: 254.79837036132812
+WARNING:tensorflow:From /home/duc/miniconda2/envs/research/lib/python3.6/site-packages/tensorflow/python/training/saver.py:1266: checkpoint_exists (from tensorflow.python.training.checkpoint_management) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use standard file APIs to check for files with this prefix.
+=-==-==-==-==-=227.95108032226562
+Test perplexity: 227.88369750976562
+
+
+hidde = 400
+drop = 0.9
+
+Epoch 0
+Training perplexity: 360.61578369140625
+Validation perplexity: 270.1502990722656
+Total time: 325.4568383693695
+Epoch 1
+Training perplexity: 229.64122009277344
+Validation perplexity: 243.7705078125
+Total time: 325.63374972343445
+Epoch 2
+Training perplexity: 191.2261199951172
+Validation perplexity: 242.44505310058594
+Total time: 328.15093660354614
+Epoch 3
+Training perplexity: 169.3697052001953
+Validation perplexity: 249.40943908691406
+Total time: 325.06081771850586
+Epoch 4
+Training perplexity: 154.87063598632812
+Validation perplexity: 259.5543518066406
+Total time: 330.8134925365448
+Epoch 5
+Training perplexity: 144.22491455078125
+Validation perplexity: 272.9212646484375
+WARNING:tensorflow:From /home/duc/miniconda2/envs/research/lib/python3.6/site-packages/tensorflow/python/training/saver.py:1266: checkpoint_exists (from tensorflow.python.training.checkpoint_management) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use standard file APIs to check for files with this prefix.
+=-==-==-==-==-=225.91726684570312
+Test perplexity: 225.87989807128906
+=-==-==-==-==-=
+
+
+
+hidden = 600
+drop = 0.9
+
+Epoch 0
+Training perplexity: 359.49072265625
+Validation perplexity: 267.2053527832031
+Total time: 440.6630311012268
+Epoch 1
+Training perplexity: 224.3708038330078
+Validation perplexity: 242.1778106689453
+Total time: 454.5074384212494
+Epoch 2
+Training perplexity: 184.097412109375
+Validation perplexity: 239.82373046875
+Total time: 441.15663862228394
+Epoch 3
+Training perplexity: 161.62301635742188
+Validation perplexity: 250.0080108642578
+Total time: 441.66660261154175
+Epoch 4
+Training perplexity: 145.97900390625
+Validation perplexity: 258.4219055175781
+Total time: 438.9344027042389
+Epoch 5
+Training perplexity: 134.59019470214844
+Validation perplexity: 278.71343994140625
+WARNING:tensorflow:From /home/duc/miniconda2/envs/research/lib/python3.6/site-packages/tensorflow/python/training/saver.py:1266: checkpoint_exists (from tensorflow.python.training.checkpoint_management) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use standard file APIs to check for files with this prefix.
+=-==-==-==-==-=221.51785278320312
+Test perplexity: 221.5708770751953
+=-==-==-==-==-=
+
+
+hidden = 800
+drop = 0.9
+
+Epoch 0
+Training perplexity: 361.634521484375
+Validation perplexity: 268.78240966796875
+Total time: 535.0384225845337
+Epoch 1
+Training perplexity: 222.5692138671875
+Validation perplexity: 243.57391357421875
+Total time: 538.159051656723
+Epoch 2
+Training perplexity: 182.1752166748047
+Validation perplexity: 245.84169006347656
+Total time: 541.3553082942963
+Epoch 3
+Training perplexity: 159.47344970703125
+Validation perplexity: 253.62619018554688
+Total time: 539.0967044830322
+Epoch 4
+Training perplexity: 144.3288116455078
+Validation perplexity: 264.4435119628906
+WARNING:tensorflow:From /home/duc/miniconda2/envs/research/lib/python3.6/site-packages/tensorflow/python/training/saver.py:1266: checkpoint_exists (from tensorflow.python.training.checkpoint_management) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use standard file APIs to check for files with this prefix.
+=-==-==-==-==-=226.99612426757812
+Test perplexity: 226.86703491210938
+=-==-==-==-==-=
+
+
+GRU
+hidden = 400
+dropout = 0.9
+
+
+Epoch 0
+Training perplexity: 325.6135559082031
+Validation perplexity: 263.3196105957031
+Total time: 345.324777841568
+Epoch 1
+Training perplexity: 218.78419494628906
+Validation perplexity: 357.5904541015625
+Total time: 347.5280647277832
+Epoch 2
+Training perplexity: 195.98095703125
+Validation perplexity: 386.5997009277344
+Total time: 349.369882106781
+Epoch 3
+Training perplexity: 189.886962890625
+Validation perplexity: 485.2229309082031
+WARNING:tensorflow:From /home/duc/miniconda2/envs/research/lib/python3.6/site-packages/tensorflow/python/training/saver.py:1266: checkpoint_exists (from tensorflow.python.training.checkpoint_management) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use standard file APIs to check for files with this prefix.
+=-==-==-==-==-=252.83454895019532
+Test perplexity: 253.0391082763672
+=-==-==-==-==-=
+

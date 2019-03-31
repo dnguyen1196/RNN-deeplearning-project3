@@ -25,12 +25,12 @@ class Config(object):
   """
   batch_size = 128
   embed_size = 50
-  hidden_size = 300
+  hidden_size = 400
   num_steps = 10
-  max_epochs = 16
+  max_epochs = 20
   early_stopping = 2
-  dropout = 0.5
-  lr = 1e-3
+  dropout = 0.9
+  lr = 0.01
 
 class RNNLM_Model(LanguageModel):
 
@@ -212,7 +212,10 @@ class RNNLM_Model(LanguageModel):
     self.load_data(debug=False)
     self.add_placeholders()
     self.inputs = self.add_embedding()
-    self.rnn_outputs = self.add_model(self.inputs)
+    # self.rnn_outputs = self.add_model(self.inputs)
+    # self.rnn_outputs = self.add_model_GRU(self.inputs)
+    self.rnn_outputs = self.add_model_LSTM(self.inputs)
+
     self.outputs = self.add_projection(self.rnn_outputs)
   
     # We want to check how well we correctly predict the next word
@@ -269,6 +272,7 @@ class RNNLM_Model(LanguageModel):
     # Create parameters for RNN
     self.initial_state = tf.zeros([self.config.batch_size,self.config.hidden_size])
     with tf.variable_scope("RNN",reuse = tf.AUTO_REUSE):
+        # TODO: try GRU or LSTM
         self.H = tf.get_variable("H",shape=[self.config.hidden_size,self.config.hidden_size],\
                                         initializer=tf.contrib.layers.xavier_initializer())
         self.I = tf.get_variable("I",shape=[self.config.embed_size,self.config.hidden_size],\
@@ -285,6 +289,215 @@ class RNNLM_Model(LanguageModel):
         curr_input = tf.nn.dropout(curr_input,keep_prob=self.dropout_placeholder)
         h = tf.nn.dropout(tf.nn.sigmoid(tf.matmul(h, self.H) + tf.matmul(curr_input, self.I) + self.b1)\
                             ,keep_prob=self.dropout_placeholder)
+        rnn_outputs.append(h)
+
+    self.final_state = h        
+    ### END YOUR CODE
+    return rnn_outputs
+
+
+  def add_model_GRU(self, inputs):
+    """Creates the RNN LM model.
+
+    In the space provided below, you need to implement the equations for the
+    RNN LM model. You can use built in rnn_cell functions from
+    tensorflow.
+
+    Hint: Use a zeros tensor of shape (batch_size, hidden_size) as
+          initial state for the RNN. Add this to self as instance variable
+
+          self.initial_state
+  
+          (Don't change variable name)
+    Hint: Add the last RNN output to self as instance variable
+
+          self.final_state
+
+          (Don't change variable name)
+    Hint: Make sure to apply dropout to the inputs and the outputs.
+    Hint: Use a variable scope (e.g. "RNN") to define RNN variables.
+    Hint: Perform an explicit for-loop over inputs. You can use
+          scope.reuse_variables() to ensure that the weights used at each
+          iteration (each time-step) are the same. (Make sure you don't call
+          this for iteration 0 though or nothing will be initialized!)
+    Hint: Here are the dimensions of the various variables you will need to
+          create:
+      
+          H: (hidden_size, hidden_size) 
+          I: (embed_size, hidden_size)
+          b_1: (hidden_size,)
+
+    Args:
+      inputs: List of length num_steps, each of whose elements should be
+              a tensor of shape (batch_size, embed_size).
+    Returns:
+      outputs: List of length num_steps, each of whose elements should be
+               a tensor of shape (batch_size, hidden_size)
+    """
+    ### YOUR CODE HERE
+
+    # Create parameters for RNN
+    self.initial_state = tf.zeros([self.config.batch_size,self.config.hidden_size])
+    with tf.variable_scope("GRU",reuse = tf.AUTO_REUSE):
+        # TODO: try GRU or LSTM
+        self.Wu_h = tf.get_variable("Wu_h",shape=[self.config.hidden_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.Wu_x = tf.get_variable("Wu_x",shape=[self.config.embed_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.bu   = tf.get_variable("bu",shape=[self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+
+        self.Wr_h = tf.get_variable("Wr_h",shape=[self.config.hidden_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.Wr_x = tf.get_variable("Wr_x",shape=[self.config.embed_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.br   = tf.get_variable("br",shape=[self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+
+        self.Wc_h = tf.get_variable("Wc_h",shape=[self.config.hidden_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.Wc_x = tf.get_variable("Wc_x",shape=[self.config.embed_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.bc   = tf.get_variable("bc",shape=[self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+
+
+    # Compute RNN outputs
+    rnn_outputs = []    
+    h = self.initial_state
+    for i in range(self.config.num_steps):
+        curr_input = inputs[i]
+        # Apply drop out
+        curr_input = tf.nn.dropout(curr_input,keep_prob=self.dropout_placeholder)
+
+        # h = tf.nn.dropout(tf.nn.sigmoid(tf.matmul(h, self.H) + tf.matmul(curr_input, self.I) + self.b1)\
+        #                     ,keep_prob=self.dropout_placeholder)
+
+        u = tf.nn.sigmoid(tf.matmul(h, self.Wu_h) + tf.matmul(curr_input, self.Wu_x) + self.bu)
+
+        r = tf.nn.sigmoid(tf.matmul(h, self.Wr_h) + tf.matmul(curr_input, self.Wr_x) + self.br)
+
+        c = tf.nn.tanh(tf.matmul(tf.multiply(r, h), self.Wc_h) + tf.matmul(curr_input, self.Wc_x) + self.bc)
+
+        h = tf.multiply(u, h) + tf.multiply(tf.ones_like(u) - u, c)
+
+        rnn_outputs.append(h)
+
+    self.final_state = h        
+    ### END YOUR CODE
+    return rnn_outputs
+
+
+  def add_model_LSTM(self, inputs):
+    """Creates the RNN LM model.
+
+    In the space provided below, you need to implement the equations for the
+    RNN LM model. You can use built in rnn_cell functions from
+    tensorflow.
+
+    Hint: Use a zeros tensor of shape (batch_size, hidden_size) as
+          initial state for the RNN. Add this to self as instance variable
+
+          self.initial_state
+  
+          (Don't change variable name)
+    Hint: Add the last RNN output to self as instance variable
+
+          self.final_state
+
+          (Don't change variable name)
+    Hint: Make sure to apply dropout to the inputs and the outputs.
+    Hint: Use a variable scope (e.g. "RNN") to define RNN variables.
+    Hint: Perform an explicit for-loop over inputs. You can use
+          scope.reuse_variables() to ensure that the weights used at each
+          iteration (each time-step) are the same. (Make sure you don't call
+          this for iteration 0 though or nothing will be initialized!)
+    Hint: Here are the dimensions of the various variables you will need to
+          create:
+      
+          H: (hidden_size, hidden_size) 
+          I: (embed_size, hidden_size)
+          b_1: (hidden_size,)
+
+    Args:
+      inputs: List of length num_steps, each of whose elements should be
+              a tensor of shape (batch_size, embed_size).
+    Returns:
+      outputs: List of length num_steps, each of whose elements should be
+               a tensor of shape (batch_size, hidden_size)
+    """
+    ### YOUR CODE HERE
+
+    # Create parameters for RNN
+    self.initial_state = tf.zeros([self.config.batch_size,self.config.hidden_size])
+    with tf.variable_scope("LSTM",reuse = tf.AUTO_REUSE):
+        # TODO: try GRU or LSTM
+
+        # u-gate
+        self.Wu = tf.get_variable("Wu",shape=[self.config.hidden_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.Uu = tf.get_variable("Uu",shape=[self.config.embed_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.bu = tf.get_variable("bu",shape=[self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+
+        # Output gate
+        self.Wo = tf.get_variable("Wo",shape=[self.config.hidden_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.Uo = tf.get_variable("Uo",shape=[self.config.embed_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.bo = tf.get_variable("bo",shape=[self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+
+        # Forget gate
+        self.Wf = tf.get_variable("Wf",shape=[self.config.hidden_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.Uf = tf.get_variable("Uf",shape=[self.config.embed_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.bf = tf.get_variable("bf",shape=[self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+
+        # Relevance gate
+        self.Wr = tf.get_variable("Wr",shape=[self.config.hidden_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.Ur = tf.get_variable("Ur",shape=[self.config.embed_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.br = tf.get_variable("br",shape=[self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+
+
+        # Control gate
+        self.Wc = tf.get_variable("Wc",shape=[self.config.hidden_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.Uc = tf.get_variable("Uc",shape=[self.config.embed_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.bc = tf.get_variable("bc",shape=[self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+
+
+    # Compute RNN outputs
+    rnn_outputs = []    
+    h = self.initial_state
+
+    for i in range(self.config.num_steps):
+        curr_input = inputs[i]
+        # Apply drop out
+        curr_input = tf.nn.dropout(curr_input,keep_prob=self.dropout_placeholder)
+
+        u = tf.nn.sigmoid(tf.matmul(h, self.Wu) + tf.matmul(curr_input, self.Uu) + self.bu)
+
+        r = tf.nn.sigmoid(tf.matmul(h, self.Wr) + tf.matmul(curr_input, self.Ur) + self.br)
+
+        f = tf.nn.sigmoid(tf.matmul(h, self.Wf) + tf.matmul(curr_input, self.Uf) + self.bf)
+
+        o = tf.nn.sigmoid(tf.matmul(h, self.Wo) + tf.matmul(curr_input, self.Uo) + self.bo)
+
+        c_tilde = tf.nn.tanh(tf.matmul(tf.multiply(r, h), self.Wc) + tf.matmul(curr_input, self.Uc) + self.bc)
+
+        c = tf.multiply(u, c_tilde) + tf.multiply(f, h)
+
+        h = tf.multiply(o, c)
+
         rnn_outputs.append(h)
 
     self.final_state = h        
