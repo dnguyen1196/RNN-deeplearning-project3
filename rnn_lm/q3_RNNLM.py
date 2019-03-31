@@ -23,14 +23,14 @@ class Config(object):
   information parameters. Model objects are passed a Config() object at
   instantiation.
   """
-  batch_size = 64
+  batch_size = 128
   embed_size = 50
-  hidden_size = 100
+  hidden_size = 300
   num_steps = 10
   max_epochs = 16
   early_stopping = 2
-  dropout = 0.9
-  lr = 0.001
+  dropout = 0.5
+  lr = 1e-3
 
 class RNNLM_Model(LanguageModel):
 
@@ -52,6 +52,26 @@ class RNNLM_Model(LanguageModel):
       self.encoded_train = self.encoded_train[:num_debug]
       self.encoded_valid = self.encoded_valid[:num_debug]
       self.encoded_test = self.encoded_test[:num_debug]
+    
+    # Load word vectors
+    all_embeddings = np.loadtxt("data/ner/wordVectors.txt")
+    all_words = np.genfromtxt("data/ner/vocab.txt",dtype='str')
+
+    # L is the embedding matrix
+    L = np.zeros((len(self.vocab), self.config.embed_size))
+    m = 0
+    for i in range(len(self.vocab)):
+        word = self.vocab.index_to_word[i]
+        index = np.where(all_words == word)
+
+        if index[0].shape[0] == 0:
+            m += 1
+            L[i,:] = all_embeddings[0,:]
+        else:
+            index = np.asscalar(index[0])
+            L[i,:] = all_embeddings[index,:]
+
+    self.L = tf.constant(L, dtype = tf.float32)
 
   def add_placeholders(self):
     """Generate placeholder variables to represent the input tensors
@@ -79,7 +99,9 @@ class RNNLM_Model(LanguageModel):
     (Don't change the variable names)
     """
     ### YOUR CODE HERE
-    raise NotImplementedError
+    self.input_placeholder = tf.placeholder(tf.int32, shape = [None, self.config.num_steps], name="input_placeholder")
+    self.labels_placeholder = tf.placeholder(tf.int32, shape = [None, self.config.num_steps], name="labels_placeholder")
+    self.dropout_placeholder = tf.placeholder(tf.float32, shape = (), name="dropout_placeholder")
     ### END YOUR CODE
   
   def add_embedding(self):
@@ -98,12 +120,19 @@ class RNNLM_Model(LanguageModel):
       inputs: List of length num_steps, each of whose elements should be
               a tensor of shape (batch_size, embed_size).
     """
-    # The embedding lookup is currently only implemented for the CPU
     with tf.device('/cpu:0'):
       ### YOUR CODE HERE
-      raise NotImplementedError
+      
+      inputs = []
+      split_inputs = tf.split(self.input_placeholder, self.config.num_steps, axis=1)
+
+      for i in range(self.config.num_steps):
+        a_input = tf.cast(tf.one_hot(tf.squeeze(split_inputs[i], axis=1), len(self.vocab)), tf.float32)
+        inputs.append(tf.matmul(a_input,self.L))
+        
       ### END YOUR CODE
       return inputs
+
 
   def add_projection(self, rnn_outputs):
     """Adds a projection layer.
@@ -125,7 +154,17 @@ class RNNLM_Model(LanguageModel):
                (batch_size, len(vocab)
     """
     ### YOUR CODE HERE
-    raise NotImplementedError
+    outputs = []
+    with tf.variable_scope("RNN",reuse=tf.AUTO_REUSE):
+        self.U = tf.get_variable("U",shape=[self.config.hidden_size,len(self.vocab)],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.b2 = tf.get_variable("b2",shape=[len(self.vocab)],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+    
+    for i in range(self.config.num_steps):
+        output = tf.matmul(rnn_outputs[i], self.U) + self.b2
+        outputs.append(output)
+        
     ### END YOUR CODE
     return outputs
 
@@ -140,9 +179,10 @@ class RNNLM_Model(LanguageModel):
       loss: A 0-d tensor (scalar)
     """
     ### YOUR CODE HERE
-    raise NotImplementedError
+    return sequence_loss(output, self.labels_placeholder,\
+                  weights=tf.ones([self.config.batch_size, self.config.num_steps]),\
+                  average_across_timesteps=False,average_across_batch=False)
     ### END YOUR CODE
-    return loss
 
   def add_training_op(self, loss):
     """Sets up the training Ops.
@@ -163,10 +203,9 @@ class RNNLM_Model(LanguageModel):
     Returns:
       train_op: The Op for training.
     """
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
-    return train_op
+    with tf.variable_scope("loss",reuse = tf.AUTO_REUSE):
+      train_op = tf.train.AdamOptimizer(self.config.lr).minimize(loss)
+      return train_op
   
   def __init__(self, config):
     self.config = config
@@ -182,7 +221,7 @@ class RNNLM_Model(LanguageModel):
     self.predictions = [tf.nn.softmax(tf.cast(o, 'float64')) for o in self.outputs]
     # Reshape the output into len(vocab) sized chunks - the -1 says as many as
     # needed to evenly divide
-    output = tf.reshape(tf.concat(1, self.outputs), [-1, len(self.vocab)])
+    output = tf.stack(self.outputs, 1)
     self.calculate_loss = self.add_loss_op(output)
     self.train_step = self.add_training_op(self.calculate_loss)
 
@@ -226,7 +265,29 @@ class RNNLM_Model(LanguageModel):
                a tensor of shape (batch_size, hidden_size)
     """
     ### YOUR CODE HERE
-    raise NotImplementedError
+
+    # Create parameters for RNN
+    self.initial_state = tf.zeros([self.config.batch_size,self.config.hidden_size])
+    with tf.variable_scope("RNN",reuse = tf.AUTO_REUSE):
+        self.H = tf.get_variable("H",shape=[self.config.hidden_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+        self.I = tf.get_variable("I",shape=[self.config.embed_size,self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+    
+        self.b1 = tf.get_variable("b1",shape=[self.config.hidden_size],\
+                                        initializer=tf.contrib.layers.xavier_initializer())
+
+    # Compute RNN outputs
+    rnn_outputs = []    
+    h = self.initial_state
+    for i in range(self.config.num_steps):
+        curr_input = inputs[i]
+        curr_input = tf.nn.dropout(curr_input,keep_prob=self.dropout_placeholder)
+        h = tf.nn.dropout(tf.nn.sigmoid(tf.matmul(h, self.H) + tf.matmul(curr_input, self.I) + self.b1)\
+                            ,keep_prob=self.dropout_placeholder)
+        rnn_outputs.append(h)
+
+    self.final_state = h        
     ### END YOUR CODE
     return rnn_outputs
 
@@ -282,9 +343,16 @@ def generate_text(session, model, config, starting_text='<eos>',
   state = model.initial_state.eval()
   # Imagine tokens as a batch size of one, length of len(tokens[0])
   tokens = [model.vocab.encode(word) for word in starting_text.split()]
-  for i in xrange(stop_length):
+  next_word_idx = tokens[0]
+  for i in range(len(tokens)+stop_length):
     ### YOUR CODE HERE
-    raise NotImplementedError
+    next_word_idx = tokens[i]
+    next_word_idx = np.reshape(next_word_idx, (1,1))
+    feed = {model.input_placeholder: next_word_idx,
+              model.initial_state: state,
+              model.dropout_placeholder: 1.}
+    y_pred,new_state =session.run([model.predictions, model.final_state], feed_dict = feed)
+    state = new_state
     ### END YOUR CODE
     next_word_idx = sample(y_pred[0], temperature=temp)
     tokens.append(next_word_idx)
@@ -303,7 +371,7 @@ def test_RNNLM():
   gen_config.batch_size = gen_config.num_steps = 1
 
   # We create the training model and generative model
-  with tf.variable_scope('RNNLM') as scope:
+  with tf.variable_scope('RNNLM', reuse = tf.AUTO_REUSE) as scope:
     model = RNNLM_Model(config)
     # This instructs gen_model to reuse the same variables as the model above
     scope.reuse_variables()
@@ -317,7 +385,7 @@ def test_RNNLM():
     best_val_epoch = 0
   
     session.run(init)
-    for epoch in xrange(config.max_epochs):
+    for epoch in range(config.max_epochs):
       print('Epoch {}'.format(epoch))
       start = time.time()
       ###

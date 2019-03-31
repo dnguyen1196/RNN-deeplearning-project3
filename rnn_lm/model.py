@@ -6,7 +6,7 @@ class Model(object):
   inherit from a Model object.
   """
 
-  def load_data(self):
+  def load_data(self, debug=False):
     """Loads data from disk and stores it in memory.
 
     Feel free to add instance variables to Model object that store loaded data.    
